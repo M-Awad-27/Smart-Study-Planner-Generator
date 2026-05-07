@@ -4,14 +4,24 @@
 
 A premium, AI-powered study schedule generator designed to optimize exam preparation. This application uses a weighted scoring algorithm to prioritize subjects based on difficulty, exam proximity, and personal weaknesses, all wrapped in a stunning, high-performance "Glassmorphism" interface.
 
-## 🚀 Key Features
+## 🧠 Smart Priority Engine
 
-### 🧠 Smart Priority Engine
-- **Weighted Scoring Algorithm**: Ranks subjects using three key metrics:
-  - **Urgency**: Proximity to the exam date.
-  - **Difficulty**: Complexity of the subject material.
-  - **Weakness**: Personal confidence level in the subject.
-- **Dynamic Time Allocation**: Automatically distributes available study hours based on subject priority.
+### Priority Scoring Formula
+The application uses a weighted multi-factor scoring system to determine which subjects require more attention. The **Raw Score** for each subject is calculated as follows:
+
+$$S_{raw} = (D_{norm} \times 0.35) + (U_{norm} \times 0.45) + (W_{val} \times 0.20)$$
+
+Where:
+- **$D_{norm}$ (Difficulty)**: Normalized difficulty level (Easy=0, Medium=0.5, Hard=1.0).
+- **$U_{norm}$ (Urgency)**: Calculated as $\min(1.0, \frac{7}{DaysUntilExam})$. Subjects with exams in less than 7 days receive maximum urgency.
+- **$W_{val}$ (Weakness)**: A binary multiplier (1.0 if marked as a "weak subject", 0.0 otherwise).
+
+The final **Priority Score (0-100)** is then normalized across all subjects:
+$$S_{final} = \left( \frac{S_{raw} - S_{min}}{S_{max} - S_{min}} \right) \times 100$$
+
+### Key Features
+- **Smart Priority Ranking**: Subjects are automatically sorted and assigned "High", "Medium", or "Low" priority levels.
+- **Dynamic Time Allocation**: Automatically distributes available study hours based on the calculated priority scores.
 
 ### 📊 Data Visualization & Insights
 - **Interactive Charts**: Visual breakdown of time distribution and score components using Chart.js.
