@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Study Planner Generator</title>
+    <meta name="description" content="Generate personalized study schedules with AI-powered priority scoring. Optimize your exam prep with smart time allocation.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Chart.js CDN for pie/doughnut visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+    <!-- Background Orbs -->
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+
+    <!-- Header -->
+    <header class="header" id="main-header">
+        <div class="header-badge">Data Science Powered</div>
+        <h1 class="header-title">Smart Study Planner</h1>
+        <p class="header-subtitle">Plan smarter, not harder — AI-optimized study schedules tailored to you</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <!-- Input Form Section -->
+        <section class="card form-section" id="form-section">
+            <div class="card-header">
+                <h2 class="card-title">Your Study Details</h2>
+                <p class="card-description">Enter your subjects and preferences to generate an optimized plan</p>
+            </div>
+
+            <form id="study-form">
+                <!-- Number of Subjects -->
+                <div class="form-group" id="subject-count-group">
+                    <label class="form-label" for="subject-count">Number of Subjects</label>
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" id="stepper-minus" aria-label="Decrease subjects">−</button>
+                        <input type="number" id="subject-count" class="stepper-input" value="3" min="1" max="10" readonly>
+                        <button type="button" class="stepper-btn" id="stepper-plus" aria-label="Increase subjects">+</button>
+                    </div>
+                </div>
+
+                <!-- Dynamic Subject Cards -->
+                <div id="subjects-container" class="subjects-container"></div>
+
+                <!-- Preferences Row -->
+                <div class="preferences-row">
+                    <div class="form-group">
+                        <label class="form-label" for="daily-hours">Daily Study Hours</label>
+                        <div class="range-wrapper">
+                            <input type="range" id="daily-hours" class="range-input" min="1" max="14" step="0.5" value="5">
+                            <div class="range-value" id="hours-display">5 hrs</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Preferred Study Time</label>
+                        <div class="time-selector">
+                            <label class="time-option">
+                                <input type="radio" name="preferred-time" value="morning" checked>
+                                <span class="time-card">
+                                    <span class="time-label">Morning</span>
+                                </span>
+                            </label>
+                            <label class="time-option">
+                                <input type="radio" name="preferred-time" value="evening">
+                                <span class="time-card">
+                                    <span class="time-label">Evening</span>
+                                </span>
+                            </label>
+                            <label class="time-option">
+                                <input type="radio" name="preferred-time" value="night">
+                                <span class="time-card">
+                                    <span class="time-label">Night</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn" id="generate-btn">
+                    <span class="btn-text">Generate Study Plan</span>
+                    <span class="btn-loading" style="display:none;">
+                        <span class="spinner-container" style="position: relative; display: inline-block; vertical-align: middle; margin-right: 8px;">
+                            <span class="spinner"></span>
+                            <span class="spinner-glow"></span>
+                        </span>
+                        Generating...
+                    </span>
+                </button>
+            </form>
+        </section>
+
+        <!-- Error Display -->
+        <div class="error-banner" id="error-banner" style="display:none;">
+            <div class="error-messages" id="error-messages"></div>
+            <button class="error-close" id="error-close" aria-label="Close error">&times;</button>
+        </div>
+
+        <!-- Results Section (hidden by default) -->
+        <section class="results-section" id="results-section" style="display:none;">
+
+            <div class="download-toolbar" id="download-toolbar">
+                <button class="download-btn" id="csv-download-btn" aria-label="Download as CSV">
+                    Download CSV
+                </button>
+                <button class="download-btn secondary" id="print-btn" aria-label="Print timetable">
+                    Print Plan
+                </button>
+            </div>
+
+            <!-- Live Break Reminder Banner -->
+            <div class="live-break-banner" id="live-break-banner" style="display:none;">
+                <div class="break-icon"></div>
+                <div class="break-banner-content">
+                    <div class="break-banner-title">Next Break In: <span id="break-timer-text">--:--</span></div>
+                    <div class="break-banner-tip" id="break-banner-tip">Loading tip...</div>
+                </div>
+            </div>
+
+            <!-- Exam Countdown Timers -->
+            <div class="results-grid">
+            <div class="card result-card" id="countdown-card" style="--card-index: 0">
+                <div class="card-header">
+                    <h2 class="card-title">Exam Countdowns</h2>
+                    <p class="card-description">Live countdown to each exam — stay aware of your deadlines</p>
+                </div>
+                <div class="countdowns-grid" id="countdowns-grid"></div>
+            </div>
+
+            <!-- Priority Ranking -->
+            <div class="card result-card" id="priority-card">
+                <div class="card-header">
+                    <h2 class="card-title">Priority Ranking</h2>
+                    <p class="card-description">Subjects ranked by urgency, difficulty, and weakness</p>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="priority-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Subject</th>
+                                <th>Priority</th>
+                                <th>Score</th>
+                                <th>Hours</th>
+                                <th>Exam In</th>
+                            </tr>
+                        </thead>
+                        <tbody id="priority-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Suggestions -->
+            <div class="card result-card" id="suggestions-card">
+                <div class="card-header">
+                    <h2 class="card-title">Smart Suggestions</h2>
+                    <p class="card-description">Personalized tips based on your study profile</p>
+                </div>
+                <div class="suggestions-list" id="suggestions-list"></div>
+            </div>
+
+            <!-- Time Distribution Chart -->
+            <div class="card result-card" id="chart-card" style="--card-index: 5">
+                <div class="card-header">
+                    <h2 class="card-title">Time Distribution</h2>
+                    <p class="card-description">Visual breakdown of how your study hours are allocated</p>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="distribution-chart"></canvas>
+                </div>
+                <div class="chart-legend" id="chart-legend"></div>
+            </div>
+
+            <!-- Score Breakdown Bar Chart -->
+            <div class="card result-card" id="bar-chart-card" style="--card-index: 6">
+                <div class="card-header">
+                    <h2 class="card-title">Score Breakdown</h2>
+                    <p class="card-description">What's driving each subject's priority</p>
+                </div>
+                <div class="chart-wrapper chart-wrapper-bar">
+                    <canvas id="breakdown-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Daily Timetable -->
+            <div class="card result-card" id="timetable-card">
+                <div class="card-header">
+                    <h2 class="card-title">Daily Timetable</h2>
+                    <p class="card-description">Your optimized schedule for today</p>
+                </div>
+                <div class="timetable-grid" id="timetable-grid"></div>
+            </div>
+
+            <!-- Weekly Plan -->
+            <div class="card result-card" id="weekly-card">
+                <div class="card-header">
+                    <h2 class="card-title">Weekly Plan</h2>
+                    <p class="card-description">7-day rotating schedule for balanced coverage</p>
+                </div>
+                <div class="weekly-grid" id="weekly-grid"></div>
+            </div>
+
+            <!-- Break Schedule -->
+            <div class="card result-card" id="breaks-card">
+                <div class="card-header">
+                    <h2 class="card-title">Break Schedule</h2>
+                    <p class="card-description">Scheduled rest for peak performance</p>
+                </div>
+                <div class="breaks-list" id="breaks-list"></div>
+            </div>
+
+            </div><!-- end results-grid -->
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Made by <a href="https://github.com/M-Awad-27" target="_blank" class="footer-link">Muhammad Awad</a></p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
